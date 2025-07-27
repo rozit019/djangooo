@@ -6,7 +6,8 @@ from .models import Task  # if you're using a Task model
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = '__all__'  # or a specific list like ['title', 'description']
+        fields = ['title', 'description', 'due_date', 'priority']
+ # or a specific list like ['title', 'description']
 
 
 class RegisterForm(UserCreationForm):

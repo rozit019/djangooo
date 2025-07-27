@@ -50,12 +50,15 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+LOGIN_REDIRECT_URL = '/tasks/'
+LOGOUT_REDIRECT_URL = '/login/'
+
 ROOT_URLCONF = 'shyam.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'tasks' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
