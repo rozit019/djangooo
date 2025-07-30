@@ -1,0 +1,117 @@
+{% extends 'base.html' %} {% block content %}
+<div class="max-w-xl mx-auto mt-8 bg-white dark:bg-gray-800 p-6 rounded shadow">
+  <h2 class="text-3xl font-bold mb-6 text-center text-gray-900 dark:text-white">
+    🤖 Chatbot
+  </h2>
+
+  <div
+    id="chat-box"
+    style="
+      background: rgb(189, 192, 219);
+      color: black;
+      height: 300px;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    "
+  >
+    <p>Bot: Hello!</p>
+    <p>User: Hi!</p>
+  </div>
+
+  <form id="chat-form" class="flex mt-4">
+    <input
+      type="text"
+      id="user-message"
+      placeholder="Type a message..."
+      autocomplete="off"
+      class="flex-grow p-2 rounded-l border border-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+      required
+    />
+    <button
+      type="submit"
+      class="bg-red-600 text-black px-4 py-2 rounded-r hover:bg-red-700"
+    >
+      Send
+    </button>
+  </form>
+</div>
+
+<script>
+  document
+    .getElementById("chat-form")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const input = document.getElementById("user-message");
+      const message = input.value.trim();
+      if (!message) return;
+
+      const chatBox = document.getElementById("chat-box");
+
+      // Create user message div
+      const userMsgDiv = document.createElement("div");
+      userMsgDiv.style.backgroundColor = "#bbf7d0"; // light green
+      userMsgDiv.style.color = "black";
+      userMsgDiv.style.borderRadius = "8px";
+      userMsgDiv.style.padding = "8px 12px";
+      userMsgDiv.style.maxWidth = "80%";
+      userMsgDiv.style.alignSelf = "flex-end";
+      userMsgDiv.style.textAlign = "right";
+      userMsgDiv.textContent = `You: ${message}`;
+      chatBox.appendChild(userMsgDiv);
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+      input.value = "";
+
+      try {
+        const response = await fetch("{% url 'chatbot_api' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken"),
+          },
+          body: JSON.stringify({ message }),
+        });
+
+        if (!response.ok) throw new Error("Network response not OK");
+
+        const data = await response.json();
+
+        // Create bot message div
+        const botMsgDiv = document.createElement("div");
+        botMsgDiv.style.backgroundColor = "#bfdbfe"; // light blue
+        botMsgDiv.style.color = "black";
+        botMsgDiv.style.borderRadius = "8px";
+        botMsgDiv.style.padding = "8px 12px";
+        botMsgDiv.style.maxWidth = "80%";
+        botMsgDiv.style.alignSelf = "flex-start";
+        botMsgDiv.style.textAlign = "left";
+        botMsgDiv.textContent = `Bot: ${data.reply || "No response."}`;
+        chatBox.appendChild(botMsgDiv);
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (error) {
+        console.error("Error fetching bot reply:", error);
+      }
+    });
+
+  // Helper function to get CSRF token from cookies
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

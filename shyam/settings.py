@@ -37,8 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'tasks'
+    'tasks',
+    'crispy_forms', 
+    'crispy_bootstrap4'  # If you're using crispy forms for better form rendering
 ]
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -50,8 +54,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-LOGIN_REDIRECT_URL = '/tasks/'
+LOGIN_REDIRECT_URL = '/tasks/'  # Redirect to task list after login
 LOGOUT_REDIRECT_URL = '/login/'
+
+
 
 ROOT_URLCONF = 'shyam.urls'
 
@@ -124,3 +130,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+media_url = '/media/'
+media_root = BASE_DIR / 'media'
