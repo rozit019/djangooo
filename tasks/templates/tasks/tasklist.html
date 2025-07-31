@@ -1,5 +1,16 @@
 {% extends 'base.html' %} {% block content %}
 
+<style>
+  .fade-out {
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+  }
+  .fade-in {
+    opacity: 1;
+    transition: opacity 0.5s ease-in;
+  }
+</style>
+
 <h2 class="mb-4">Your Task List</h2>
 
 <div class="card mb-4">
@@ -56,25 +67,209 @@
 </div>
 
 <h4 class="mb-3">Tasks</h4>
+
 {% if tasks %}
-<div class="list-group">
-  {% for task in tasks %}
-  <div class="list-group-item d-flex justify-content-between align-items-start">
-    <div>
-      <h5 class="mb-1">
-        {{ task.title }}
-        <span class="badge bg-secondary">{{ task.priority }}</span>
-      </h5>
-      <p class="mb-1">{{ task.description }}</p>
-      <small class="text-muted">Due: {{ task.due_date }}</small>
+<div>
+  <div id="pendingTasks">
+    <div class="text-muted mb-2">📝 Pending Tasks</div>
+    <div class="list-group">
+      {% for task in tasks %} {% if not task.completed %}
+      <div
+        class="list-group-item d-flex justify-content-between align-items-start"
+        id="task-{{ task.id }}"
+      >
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="taskCheckbox{{ task.id }}"
+            onclick="markCompleted({{ task.id }}, this)"
+          />
+          <label class="form-check-label" for="taskCheckbox{{ task.id }}">
+            <strong>{{ task.title }}</strong>
+            <span class="badge bg-secondary">{{ task.priority }}</span><br />
+            <small>{{ task.description }} | Due: {{ task.due_date }}</small>
+          </label>
+        </div>
+
+        <form method="POST" action="{% url 'delete_task' task.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </div>
+      {% endif %} {% endfor %}
     </div>
-    <form method="POST" action="{% url 'delete_task' task.id %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-    </form>
   </div>
-  {% endfor %}
+
+  <div id="completedTasks" class="mt-4">
+    <div class="text-muted mb-2">✅ Completed Tasks</div>
+    <div class="list-group">
+      {% for task in tasks %} {% if task.completed %}
+      <div
+        class="list-group-item d-flex justify-content-between align-items-start"
+        id="task-{{ task.id }}"
+      >
+        <div>
+          <label
+            class="form-check-label text-decoration-line-through text-success"
+            for=""
+          >
+            <strong>{{ task.title }}</strong>
+            <span class="badge bg-secondary">{{ task.priority }}</span><br />
+            <small>{{ task.description }} | Due: {{ task.due_date }}</small>
+          </label>
+        </div>
+
+        <form method="POST" action="{% url 'delete_task' task.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </div>
+      {% endif %} {% endfor %}
+    </div>
+  </div>
 </div>
 {% else %}
 <p class="text-muted">No tasks found.</p>
-{% endif %} {% endblock %}
+{% endif %}
+
+<!-- Toast Notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div
+    id="taskToast"
+    class="toast align-items-center text-white bg-success border-0"
+    role="alert"
+    aria-live="assertive"
+    aria-atomic="true"
+  >
+    <div class="d-flex">
+      <div class="toast-body">✅ Task marked as completed!</div>
+      <button
+        type="button"
+        class="btn-close btn-close-white me-2 m-auto"
+        data-bs-dismiss="toast"
+        aria-label="Close"
+      ></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function markCompleted(taskId, checkbox) {
+    const completed = checkbox.checked;
+
+    fetch("{% url 'toggle_task' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": "{{ csrf_token }}",
+      },
+      body: `task_id=${taskId}&completed=${completed}`,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === "success") {
+          // Show toast notification
+          let toastEl = document.getElementById("taskToast");
+          let toast = new bootstrap.Toast(toastEl);
+          toast.show();
+
+          // Move the task card live on the page
+          const taskCard = document.getElementById(`task-${taskId}`);
+          if (!taskCard) return;
+
+          // Remove from current container
+          taskCard.remove();
+
+          // Append to new container
+          if (completed) {
+            // remove checkbox container inside taskCard
+            const checkboxDiv = taskCard.querySelector(".form-check");
+            if (checkboxDiv) {
+              // replace checkbox + label with label only and add styles
+              const label = checkboxDiv.querySelector("label");
+              const title = label.querySelector("strong").innerText;
+              const priority = label.querySelector(".badge").innerText;
+              const description = label.querySelector("small").innerText;
+
+              // Create new div with label only
+              const newDiv = document.createElement("div");
+              newDiv.innerHTML = `
+              <label class="form-check-label text-decoration-line-through text-success">
+                <strong>${title}</strong>
+                <span class="badge bg-secondary">${priority}</span><br/>
+                <small>${description}</small>
+              </label>
+            `;
+
+              checkboxDiv.replaceWith(newDiv);
+            }
+
+            document
+              .querySelector("#completedTasks .list-group")
+              .appendChild(taskCard);
+          } else {
+            // Re-add checkbox inside taskCard for pending task (reload page or additional logic required)
+            // For simplicity, just reload the page on unchecking completed to pending
+            location.reload();
+          }
+        } else {
+          alert("Error updating task status");
+          // revert checkbox on failure
+          checkbox.checked = !completed;
+        }
+      })
+      .catch(() => {
+        alert("Error updating task status");
+        checkbox.checked = !completed;
+      });
+  }
+</script>
+
+<!-- Your task list HTML here -->
+
+<!-- <script>
+  function markCompleted(taskId, checkbox) {
+    const taskEl = document.getElementById(`task-${taskId}`);
+
+    if (checkbox.checked) {
+      taskEl.classList.add('fade-out');
+
+      setTimeout(() => {
+        const pendingList = document.getElementById('pendingTasks');
+        const completedList = document.getElementById('completedTasks');
+
+        taskEl.classList.remove('fade-out');
+        completedList.appendChild(taskEl);
+
+        taskEl.classList.add('fade-in');
+
+        setTimeout(() => {
+          taskEl.classList.remove('fade-in');
+        }, 500);
+
+        // TODO: AJAX call to backend to save completed status
+      }, 500);
+    } else {
+      taskEl.classList.add('fade-out');
+
+      setTimeout(() => {
+        const pendingList = document.getElementById('pendingTasks');
+        const completedList = document.getElementById('completedTasks');
+
+        taskEl.classList.remove('fade-out');
+        pendingList.appendChild(taskEl);
+
+        taskEl.classList.add('fade-in');
+
+        setTimeout(() => {
+          taskEl.classList.remove('fade-in');
+        }, 500);
+
+        // TODO: AJAX call to backend to save incomplete status
+      }, 500);
+    }
+  }
+</script> -->
+
+{% endblock %}

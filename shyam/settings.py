@@ -56,6 +56,7 @@ MIDDLEWARE = [
 
 LOGIN_REDIRECT_URL = '/tasks/'  # Redirect to task list after login
 LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL= '/login/'  # Redirect to login page if not authenticated
 
 
 

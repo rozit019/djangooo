@@ -11,7 +11,9 @@ class Task(models.Model):
         choices=[('Low', 'Low'), ('Normal', 'Normal'), ('High', 'High')],
         default='Normal'
     )
+    completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         return self.title

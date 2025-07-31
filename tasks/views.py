@@ -31,7 +31,7 @@ def login_view(request):
 
 @login_required
 def task_list(request):
-    tasks=Task.objects.filter(user=request.user)
+    tasks=Task.objects.filter(user=request.user).order_by('completed', '-due_date')
     return render(request,'tasks/tasklist.html',{'tasks':tasks}) 
 
 @login_required
@@ -55,15 +55,14 @@ def register(request):
             messages.success(request, "Account created successfully!")
             return redirect('login')  # Redirect to task list or login page
     else:
-        # form = UserCreationForm()
-        form = RegisterForm()
-    return render(request, 'tasks/register.html', {'form': form})
+        form = UserCreationForm()
+        return render(request, 'tasks/register.html', {'form': form})
 
 def logout_view(request):
     if request.method == 'POST':
         messages.success(request, "You have been logged out successfully.")
     logout(request)
-    return redirect('tasks/login.html')
+    return redirect('login')
 
 @login_required
 def add_task(request):
@@ -120,6 +119,30 @@ def profile_view(request):
         "profile_form": profile_form,
     }
     return render(request, "tasks/profile.html", context)
+
+@login_required
+def mark_task_completed(request, task_id):
+    if request.method == 'POST':
+        task = get_object_or_404(Task, id=task_id, user=request.user)
+        data = json.loads(request.body)
+        task.completed = data.get('completed', False)
+        task.save()
+        return JsonResponse({'success': True})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@csrf_exempt
+def toggle_task_completion(request):
+    if request.method == 'POST':
+        task_id = request.POST.get('task_id')
+        completed = request.POST.get('completed') == 'true'
+        try:
+            task = Task.objects.get(pk=task_id)
+            task.completed = completed
+            task.save()
+            return JsonResponse({'status': 'success'})
+        except Task.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Task not found'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
 
 @csrf_exempt
 def chatbot_api(request):
