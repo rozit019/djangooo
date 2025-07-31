@@ -24,7 +24,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
-            return redirect('home')  # replace with your home view name
+            return redirect('task_list')  # replace with your home view name
         else:
             messages.error(request, "Invalid username or password")
     return render(request, 'tasks/login.html')
