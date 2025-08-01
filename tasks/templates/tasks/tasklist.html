@@ -157,6 +157,74 @@
 <script>
   function markCompleted(taskId, checkbox) {
     const completed = checkbox.checked;
+    const taskEl = document.getElementById(`task-${taskId}`);
+
+    taskEl.classList.add("fade-out");
+
+    setTimeout(() => {
+      fetch("{% url 'toggle_task' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: `task_id=${taskId}&completed=${completed}`,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "success") {
+            let toastEl = document.getElementById("taskToast");
+            let toast = new bootstrap.Toast(toastEl);
+            toast.show();
+
+            taskEl.classList.remove("fade-out");
+
+            if (completed) {
+              // Convert form-check to static label
+              const checkboxDiv = taskEl.querySelector(".form-check");
+              if (checkboxDiv) {
+                const label = checkboxDiv.querySelector("label");
+                const title = label.querySelector("strong").innerText;
+                const priority = label.querySelector(".badge").innerText;
+                const description = label.querySelector("small").innerText;
+
+                const newDiv = document.createElement("div");
+                newDiv.innerHTML = `
+                <label class="form-check-label text-decoration-line-through text-success">
+                  <strong>${title}</strong>
+                  <span class="badge bg-secondary">${priority}</span><br/>
+                  <small>${description}</small>
+                </label>
+              `;
+
+                checkboxDiv.replaceWith(newDiv);
+              }
+
+              document
+                .querySelector("#completedTasks .list-group")
+                .appendChild(taskEl);
+            } else {
+              location.reload(); // simpler than reverting full DOM for pending
+            }
+
+            taskEl.classList.add("fade-in");
+            setTimeout(() => taskEl.classList.remove("fade-in"), 500);
+          } else {
+            alert("Error saving task status.");
+            checkbox.checked = !completed;
+          }
+        })
+        .catch(() => {
+          alert("Failed to connect to server.");
+          checkbox.checked = !completed;
+        });
+    }, 300);
+  }
+</script>
+
+<!-- <script>
+  function markCompleted(taskId, checkbox) {
+    const completed = checkbox.checked;
 
     fetch("{% url 'toggle_task' %}", {
       method: "POST",
@@ -224,7 +292,7 @@
         checkbox.checked = !completed;
       });
   }
-</script>
+</script> -->
 
 <!-- Your task list HTML here -->
 
@@ -233,37 +301,37 @@
     const taskEl = document.getElementById(`task-${taskId}`);
 
     if (checkbox.checked) {
-      taskEl.classList.add('fade-out');
+      taskEl.classList.add("fade-out");
 
       setTimeout(() => {
-        const pendingList = document.getElementById('pendingTasks');
-        const completedList = document.getElementById('completedTasks');
+        const pendingList = document.getElementById("pendingTasks");
+        const completedList = document.getElementById("completedTasks");
 
-        taskEl.classList.remove('fade-out');
+        taskEl.classList.remove("fade-out");
         completedList.appendChild(taskEl);
 
-        taskEl.classList.add('fade-in');
+        taskEl.classList.add("fade-in");
 
         setTimeout(() => {
-          taskEl.classList.remove('fade-in');
+          taskEl.classList.remove("fade-in");
         }, 500);
 
         // TODO: AJAX call to backend to save completed status
       }, 500);
     } else {
-      taskEl.classList.add('fade-out');
+      taskEl.classList.add("fade-out");
 
       setTimeout(() => {
-        const pendingList = document.getElementById('pendingTasks');
-        const completedList = document.getElementById('completedTasks');
+        const pendingList = document.getElementById("pendingTasks");
+        const completedList = document.getElementById("completedTasks");
 
-        taskEl.classList.remove('fade-out');
+        taskEl.classList.remove("fade-out");
         pendingList.appendChild(taskEl);
 
-        taskEl.classList.add('fade-in');
+        taskEl.classList.add("fade-in");
 
         setTimeout(() => {
-          taskEl.classList.remove('fade-in');
+          taskEl.classList.remove("fade-in");
         }, 500);
 
         // TODO: AJAX call to backend to save incomplete status

@@ -16,6 +16,20 @@ from django.contrib.auth.decorators import login_required
 from .models import Profile
 from .forms import ProfileUpdateForm, UserUpdateForm
 
+from .models import Task
+
+
+# class TaskViewSet(viewsets.ModelViewSet):
+#     serializer_class = TaskSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+#         return Task.objects.filter(user=self.request.user)
+
+#     def perform_create(self, serializer):
+#         serializer.save(user=self.request.user)
+
+
 
 def login_view(request):
     if request.method == 'POST':

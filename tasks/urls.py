@@ -3,6 +3,14 @@ from . import views
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+# posts/urls.py
+from django.urls import path, include
+
+# from .views import TaskViewSet
+
+# router = DefaultRouter()
+# router.register('tasks', TaskViewSet)
+
 
 
 urlpatterns = [
@@ -21,5 +29,6 @@ urlpatterns = [
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='registration/password_change_done.html'), name='password_change_done'),
     path('tasks/complete/<int:task_id>/', views.mark_task_completed, name='mark_task_completed'),
     path('tasks/toggle/', views.toggle_task_completion, name='toggle_task'),
+    
 
 ]
