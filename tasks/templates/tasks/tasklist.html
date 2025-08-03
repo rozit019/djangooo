@@ -1,6 +1,23 @@
 {% extends 'base.html' %} {% block content %}
 
 <style>
+  .fade-complete {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .fade-complete.show {
+    opacity: 1;
+  }
+</style>
+
+<style>
+  .dropdown-menu {
+    z-index: 1050; /* Bootstrap default, but you can increase if needed */
+  }
+</style>
+
+<style>
   .fade-out {
     opacity: 0;
     transition: opacity 0.3s ease-out;
@@ -9,13 +26,62 @@
     opacity: 1;
     transition: opacity 0.5s ease-in;
   }
+
+  /* Pending and Completed task containers */
+  #pendingTasks .list-group-item,
+  #completedTasks .list-group-item {
+    background-color: #fff;
+    color: #212529;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  /* Dark mode adjustments */
+  body.dark-mode #pendingTasks .list-group-item,
+  body.dark-mode #completedTasks .list-group-item {
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+  }
+
+  /* Links inside tasks */
+  #pendingTasks a,
+  #completedTasks a {
+    color: #0d6efd;
+  }
+
+  body.dark-mode #pendingTasks a,
+  body.dark-mode #completedTasks a {
+    color: #90cdf4;
+  }
+
+  /* Badges inside tasks */
+  #pendingTasks .badge,
+  #completedTasks .badge {
+    background-color: #6c757d; /* bootstrap secondary */
+  }
+
+  body.dark-mode #pendingTasks .badge,
+  body.dark-mode #completedTasks .badge {
+    background-color: #adb5bd; /* lighter gray for dark mode */
+  }
+
+  /* Titles for pending and completed tasks */
+  #pendingTasks .section-title,
+  #completedTasks .section-title {
+    color: #6c757d;
+    transition: color 0.3s;
+  }
+
+  body.dark-mode #pendingTasks .section-title,
+  body.dark-mode #completedTasks .section-title {
+    color: #e0e0e0;
+  }
 </style>
 
 <h2 class="mb-4">Your Task List</h2>
 
 <div class="card mb-4">
   <div class="card-body">
-    <form method="POST" action="{% url 'add_task' %}">
+    <form method="POST" action="{% url 'add_task' %}" form id="addTaskForm">
       {% csrf_token %}
       <div class="mb-3">
         <label for="title" class="form-label">Task Title</label>
@@ -71,7 +137,7 @@
 {% if tasks %}
 <div>
   <div id="pendingTasks">
-    <div class="text-muted mb-2">📝 Pending Tasks</div>
+    <div class="section-title mb-2">📝 Pending Tasks</div>
     <div class="list-group">
       {% for task in tasks %} {% if not task.completed %}
       <div
@@ -86,15 +152,26 @@
             onclick="markCompleted({{ task.id }}, this)"
           />
           <label class="form-check-label" for="taskCheckbox{{ task.id }}">
-            <strong>{{ task.title }}</strong>
+            <a
+              href="{% url 'task_detail' task.id %}"
+              style="color: inherit; text-decoration: underline"
+            >
+              <strong>{{ task.title }}</strong>
+            </a>
             <span class="badge bg-secondary">{{ task.priority }}</span><br />
             <small>{{ task.description }} | Due: {{ task.due_date }}</small>
           </label>
         </div>
 
-        <form method="POST" action="{% url 'delete_task' task.id %}">
+        <form
+          method="POST"
+          action="{% url 'delete_task' task.id %}"
+          class="delete-task-form"
+        >
           {% csrf_token %}
-          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          <button type="button" class="btn btn-sm btn-danger delete-btn">
+            Delete
+          </button>
         </form>
       </div>
       {% endif %} {% endfor %}
@@ -102,7 +179,7 @@
   </div>
 
   <div id="completedTasks" class="mt-4">
-    <div class="text-muted mb-2">✅ Completed Tasks</div>
+    <div class="section-title mb-2">✅ Completed Tasks</div>
     <div class="list-group">
       {% for task in tasks %} {% if task.completed %}
       <div
@@ -114,15 +191,26 @@
             class="form-check-label text-decoration-line-through text-success"
             for=""
           >
-            <strong>{{ task.title }}</strong>
+            <a
+              href="{% url 'task_detail' task.id %}"
+              style="color: inherit; text-decoration: underline"
+            >
+              <strong>{{ task.title }}</strong>
+            </a>
             <span class="badge bg-secondary">{{ task.priority }}</span><br />
             <small>{{ task.description }} | Due: {{ task.due_date }}</small>
           </label>
         </div>
 
-        <form method="POST" action="{% url 'delete_task' task.id %}">
+        <form
+          method="POST"
+          action="{% url 'delete_task' task.id %}"
+          class="delete-task-form"
+        >
           {% csrf_token %}
-          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          <button type="button" class="btn btn-sm btn-danger delete-btn">
+            Delete
+          </button>
         </form>
       </div>
       {% endif %} {% endfor %}
@@ -173,6 +261,10 @@
         .then((response) => response.json())
         .then((data) => {
           if (data.status === "success") {
+            updateDueSoonBadge();
+            const notifItem = document.querySelector(`#notif-task-${taskId}`);
+            if (notifItem) notifItem.remove();
+            // Update due soon count
             let toastEl = document.getElementById("taskToast");
             let toast = new bootstrap.Toast(toastEl);
             toast.show();
@@ -222,122 +314,234 @@
   }
 </script>
 
-<!-- <script>
-  function markCompleted(taskId, checkbox) {
-    const completed = checkbox.checked;
+<!-- Confirmation Modal -->
+<div
+  class="modal fade"
+  id="deleteConfirmModal"
+  tabindex="-1"
+  aria-labelledby="deleteConfirmLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmLabel">Confirm Deletion</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">Are you sure you want to delete this task?</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button id="confirmDeleteBtn" type="button" class="btn btn-danger">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    fetch("{% url 'toggle_task' %}", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-CSRFToken": "{{ csrf_token }}",
-      },
-      body: `task_id=${taskId}&completed=${completed}`,
-    })
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const deleteConfirmModal = new bootstrap.Modal(
+      document.getElementById("deleteConfirmModal")
+    );
+    let formToDelete = null;
+
+    // When user clicks any delete button
+    document.querySelectorAll(".delete-btn").forEach((button) => {
+      button.addEventListener("click", (e) => {
+        formToDelete = e.target.closest("form"); // get the form related to clicked button
+        deleteConfirmModal.show();
+      });
+    });
+
+    // When user clicks confirm delete in modal
+    document
+      .getElementById("confirmDeleteBtn")
+      .addEventListener("click", () => {
+        if (!formToDelete) return;
+
+        const url = formToDelete.action;
+        const csrfToken = formToDelete.querySelector(
+          "[name=csrfmiddlewaretoken]"
+        ).value;
+
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfToken,
+            "X-Requested-With": "XMLHttpRequest",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: "", // no additional data needed as form has only CSRF token and URL
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "success") {
+              // Hide modal
+              const deleteConfirmModalEl =
+                document.getElementById("deleteConfirmModal");
+              const deleteConfirmModal =
+                bootstrap.Modal.getInstance(deleteConfirmModalEl);
+              deleteConfirmModal.hide();
+
+              // Remove the task element from DOM
+              const taskEl = formToDelete.closest(".list-group-item");
+              if (taskEl) taskEl.remove();
+
+              const notifItem = document.getElementById(
+                `notif-task-${taskEl.id?.split("-")[1]}`
+              );
+              if (notifItem) notifItem.remove();
+
+              // Optionally update due soon badge or show toast message
+              updateDueSoonBadge();
+
+              // Reset formToDelete to null
+              formToDelete = null;
+            } else {
+              alert("Error deleting task");
+            }
+          })
+          .catch(() => {
+            alert("Failed to connect to server.");
+          });
+      });
+  });
+</script>
+<script>
+  function updateDueSoonBadge() {
+    fetch("{% url 'get_due_soon_count' %}")
       .then((response) => response.json())
       .then((data) => {
-        if (data.status === "success") {
-          // Show toast notification
-          let toastEl = document.getElementById("taskToast");
-          let toast = new bootstrap.Toast(toastEl);
-          toast.show();
+        const badge = document.querySelector(".badge.bg-danger");
 
-          // Move the task card live on the page
-          const taskCard = document.getElementById(`task-${taskId}`);
-          if (!taskCard) return;
-
-          // Remove from current container
-          taskCard.remove();
-
-          // Append to new container
-          if (completed) {
-            // remove checkbox container inside taskCard
-            const checkboxDiv = taskCard.querySelector(".form-check");
-            if (checkboxDiv) {
-              // replace checkbox + label with label only and add styles
-              const label = checkboxDiv.querySelector("label");
-              const title = label.querySelector("strong").innerText;
-              const priority = label.querySelector(".badge").innerText;
-              const description = label.querySelector("small").innerText;
-
-              // Create new div with label only
-              const newDiv = document.createElement("div");
-              newDiv.innerHTML = `
-              <label class="form-check-label text-decoration-line-through text-success">
-                <strong>${title}</strong>
-                <span class="badge bg-secondary">${priority}</span><br/>
-                <small>${description}</small>
-              </label>
-            `;
-
-              checkboxDiv.replaceWith(newDiv);
-            }
-
-            document
-              .querySelector("#completedTasks .list-group")
-              .appendChild(taskCard);
+        if (data.count > 0) {
+          if (badge) {
+            badge.textContent = data.count;
           } else {
-            // Re-add checkbox inside taskCard for pending task (reload page or additional logic required)
-            // For simplicity, just reload the page on unchecking completed to pending
-            location.reload();
+            const newBadge = document.createElement("span");
+            newBadge.className =
+              "position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger";
+            newBadge.textContent = data.count;
+            // document
+            //   .querySelector(".bi-bell")
+            //   .parentElement.appendChild(newBadge);
+            notificationBtn.appendChild(newBadge);
           }
-        } else {
-          alert("Error updating task status");
-          // revert checkbox on failure
-          checkbox.checked = !completed;
+        } else if (badge) {
+          badge.remove();
         }
-      })
-      .catch(() => {
-        alert("Error updating task status");
-        checkbox.checked = !completed;
       });
   }
-</script> -->
-
-<!-- Your task list HTML here -->
-
+</script>
 <!-- <script>
-  function markCompleted(taskId, checkbox) {
-    const taskEl = document.getElementById(`task-${taskId}`);
+  document
+    .getElementById("addTaskForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault(); // prevent default form submit and page reload
 
-    if (checkbox.checked) {
-      taskEl.classList.add("fade-out");
+      const form = e.target;
+      const formData = new FormData(form);
 
-      setTimeout(() => {
-        const pendingList = document.getElementById("pendingTasks");
-        const completedList = document.getElementById("completedTasks");
+      fetch(form.action, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": formData.get("csrfmiddlewaretoken"),
+        },
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "success") {
+            alert("Task added successfully!");
+            form.reset();
 
-        taskEl.classList.remove("fade-out");
-        completedList.appendChild(taskEl);
-
-        taskEl.classList.add("fade-in");
-
-        setTimeout(() => {
-          taskEl.classList.remove("fade-in");
-        }, 500);
-
-        // TODO: AJAX call to backend to save completed status
-      }, 500);
-    } else {
-      taskEl.classList.add("fade-out");
-
-      setTimeout(() => {
-        const pendingList = document.getElementById("pendingTasks");
-        const completedList = document.getElementById("completedTasks");
-
-        taskEl.classList.remove("fade-out");
-        pendingList.appendChild(taskEl);
-
-        taskEl.classList.add("fade-in");
-
-        setTimeout(() => {
-          taskEl.classList.remove("fade-in");
-        }, 500);
-
-        // TODO: AJAX call to backend to save incomplete status
-      }, 500);
-    }
-  }
+            // Optionally, update task list dynamically here, or
+            // just reload part of page with updated tasks via fetch or location.reload()
+            // For now, simple reload:
+            location.reload();
+          } else {
+            alert("Failed to add task: " + (data.error || "Unknown error"));
+          }
+        })
+        .catch(() => alert("Error connecting to server"));
+    });
 </script> -->
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("addTaskForm");
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault(); // Stop full page refresh
+
+      const formData = new FormData(form);
+      const xhr = new XMLHttpRequest();
+
+      xhr.open("POST", form.action, true);
+      xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+      xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          if (response.status === "success") {
+            // Optionally show a toast or clear the form
+            const toastEl = document.getElementById("taskAddToast");
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+            form.reset();
+            setTimeout(() => {
+              window.location.reload();
+            }, 500); // Or dynamically add to list
+          } else {
+            alert("Validation error: " + JSON.stringify(response.errors));
+          }
+        } else {
+          alert("Server error occurred.");
+        }
+      };
+
+      xhr.onerror = function () {
+        alert("Error connecting to server.");
+      };
+
+      xhr.send(formData);
+    });
+  });
+</script>
+
+<!-- Your page content above (task list, forms, etc.) -->
+
+<!-- Toast container (put before </body>) -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+  <div
+    id="taskAddToast"
+    class="toast align-items-center text-white bg-success border-0"
+    role="alert"
+    aria-live="assertive"
+    aria-atomic="true"
+  >
+    <div class="d-flex">
+      <div class="toast-body">✅ Task added successfully!</div>
+      <button
+        type="button"
+        class="btn-close btn-close-white me-2 m-auto"
+        data-bs-dismiss="toast"
+        aria-label="Close"
+      ></button>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 {% endblock %}

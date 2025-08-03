@@ -15,8 +15,14 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from .models import Profile
 from .forms import ProfileUpdateForm, UserUpdateForm
-
+from .forms import TaskForm
 from .models import Task
+from django.utils.timezone import now
+from django.db.models import Q
+from datetime import timedelta
+from datetime import timedelta
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 
 # class TaskViewSet(viewsets.ModelViewSet):
@@ -28,6 +34,44 @@ from .models import Task
 
 #     def perform_create(self, serializer):
 #         serializer.save(user=self.request.user)
+
+@login_required
+def get_due_soon_count(request):
+    today = timezone.localdate()
+    soon_threshold = today + timedelta(days=3)
+    due_soon_count = Task.objects.filter(
+        user=request.user,
+        completed=False,
+        due_date__gte=today,
+        due_date__lte=soon_threshold
+    ).count()
+    return JsonResponse({'count': due_soon_count})
+
+def edit_task(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+
+    if request.method == 'POST':
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            form.save()
+            return redirect('task_detail', task_id=task.pk)
+    else:
+        form = TaskForm(instance=task)
+
+    return render(request, 'tasks/edit_task.html', {'form': form, 'task': task})
+
+def task_detail(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+
+    if request.method == 'POST':
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            form.save()
+            return redirect('task_detail', task_id=task.id)
+    else:
+        form = TaskForm(instance=task)
+
+    return render(request, 'tasks/task_detail.html', {'task': task, 'form': form})
 
 
 
@@ -43,10 +87,62 @@ def login_view(request):
             messages.error(request, "Invalid username or password")
     return render(request, 'tasks/login.html')
 
+# @login_required
+# def task_list(request):
+#     tasks=Task.objects.filter(user=request.user).order_by('completed', '-due_date')
+#     return render(request,'tasks/tasklist.html',{'tasks':tasks}) 
 @login_required
 def task_list(request):
-    tasks=Task.objects.filter(user=request.user).order_by('completed', '-due_date')
-    return render(request,'tasks/tasklist.html',{'tasks':tasks}) 
+    # Existing code for getting tasks
+    today = timezone.localdate()
+    soon_threshold = today + timedelta(days=3)
+
+    tasks = Task.objects.filter(user=request.user).order_by('due_date')
+
+
+
+    due_soon_tasks = tasks.filter(
+        completed=False,
+        due_date__gte=today,
+        due_date__lte= soon_threshold
+    )
+    due_soon_count = due_soon_tasks.count()
+
+    context = {
+        'tasks': tasks,
+
+        'due_soon_tasks': due_soon_tasks,
+    'due_soon_count': due_soon_tasks.count(),
+        # optionally pass due_soon_tasks for detailed list
+    }
+    return render(request, 'tasks/tasklist.html', context)
+# @login_required
+# def task_list(request):
+#     # Get all tasks
+#     tasks = Task.objects.all().order_by('due_date')
+
+#     # Filter by status
+#     pending_tasks = tasks.filter(completed=False)
+#     completed_tasks = tasks.filter(completed=True)
+
+#     # Tasks due within the next 3 days (including today)
+#     today = timezone.now().date()
+#     upcoming = today + timedelta(days=3)
+#     due_soon_tasks = tasks.filter(completed=False, due_date__lte=upcoming, due_date__gte=today)
+
+#     # Count for badge
+#     due_soon_count = due_soon_tasks.count()
+
+#     context = {
+#         'tasks': tasks,
+#         'pending_tasks': pending_tasks,
+#         'completed_tasks': completed_tasks,
+#         'due_soon_tasks': due_soon_tasks,
+#         'due_soon_count': due_soon_count,
+#     }
+
+#     return render(request, 'tasks/tasklist.html',{'tasks':tasks})
+
 
 @login_required
 def task_create(request):
@@ -78,6 +174,17 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+# @login_required
+# def add_task(request):
+#     if request.method == 'POST':
+#         form = TaskForm(request.POST)
+#         if form.is_valid():
+#             task = form.save(commit=False)
+#             task.user = request.user
+#             task.save()
+#             return redirect('task_list')
+#     return redirect('task_list')
+
 @login_required
 def add_task(request):
     if request.method == 'POST':
@@ -86,7 +193,21 @@ def add_task(request):
             task = form.save(commit=False)
             task.user = request.user
             task.save()
-            return redirect('task_list')
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'success'
+                #                      ,  "task": {
+                #     "id": task.id,
+                #     "title": task.title,
+                #     "description": task.description,
+                #     "priority": task.priority,
+                #     "due_date": task.due_date.strftime("%Y-%m-%d"),
+                # }
+                })
+            else:
+                return redirect('task_list')
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'error', 'errors': form.errors})
     return redirect('task_list')
 
 @login_required
@@ -95,28 +216,67 @@ def delete_task(request, task_id):
     task.delete()
     return redirect('task_list')
 
+@login_required
 def delete_task(request, task_id):
     task = get_object_or_404(Task, id=task_id, user=request.user)
     if request.method == 'POST':
         task.delete()
-        messages.success(request, "Task deleted successfully!")
-        return redirect('task_list')
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'success'})
+        else:
+            messages.success(request, "Task deleted successfully!")
+            return redirect('task_list')
     return render(request, 'tasks/delete_task.html', {'task': task})
 
 def chatbot(request):
     return render(request, 'tasks/chatbot.html')
 
+# @login_required
+# def profile_view(request):
+#     # Get or create Profile for logged-in user
+#     profile, created = Profile.objects.get_or_create(user=request.user)
+
+#     if request.method == "POST":
+#         user_form = UserUpdateForm(request.POST, instance=request.user)
+#         profile_form = ProfileUpdateForm(
+#             request.POST,
+#             request.FILES,  # to handle uploaded files (profile pic)
+#             instance=profile
+#         )
+
+#         if user_form.is_valid() and profile_form.is_valid():
+#             user_form.save()
+#             profile_form.save()
+#             messages.success(request, "Your profile has been updated!")
+#             return redirect("profile")
+#     else:
+#         user_form = UserUpdateForm(instance=request.user)
+#         profile_form = ProfileUpdateForm(instance=profile)
+
+#     context = {
+#         "user_form": user_form,
+#         "profile_form": profile_form,
+#     }
+#     return render(request, "tasks/profile.html", context)
+
 @login_required
 def profile_view(request):
-    # Get or create Profile for logged-in user
-    profile, created = Profile.objects.get_or_create(user=request.user)
+    # Show profile page (read only)
+    return render(request, 'tasks/profile.html')
 
+def home(request):
+    return render(request, 'core/home.html')
+
+
+
+@login_required
+def edit_profile_view(request):
     if request.method == "POST":
         user_form = UserUpdateForm(request.POST, instance=request.user)
         profile_form = ProfileUpdateForm(
             request.POST,
             request.FILES,  # to handle uploaded files (profile pic)
-            instance=profile
+            instance=request.user.profile
         )
 
         if user_form.is_valid() and profile_form.is_valid():
@@ -126,13 +286,12 @@ def profile_view(request):
             return redirect("profile")
     else:
         user_form = UserUpdateForm(instance=request.user)
-        profile_form = ProfileUpdateForm(instance=profile)
+        profile_form = ProfileUpdateForm(instance=request.user.profile)
 
-    context = {
-        "user_form": user_form,
-        "profile_form": profile_form,
-    }
-    return render(request, "tasks/profile.html", context)
+    return render(request, 'tasks/edit_profile.html', {
+        'user_form': user_form,
+        'profile_form': profile_form,
+    })
 
 @login_required
 def mark_task_completed(request, task_id):

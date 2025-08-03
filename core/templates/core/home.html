@@ -1,0 +1,120 @@
+{% extends 'base.html' %} {% load static %} {% block content %}
+
+<style>
+  body,
+  html {
+    margin: 0;
+    height: 100vh;
+    font-family: "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+
+  .video-bg {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    background-color: black;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+  }
+
+  .home-container {
+    position: fixed;
+    z-index: 10;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    text-align: center;
+  }
+
+  .home-container h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0;
+  }
+
+  .btn-group {
+    position: fixed;
+    bottom: 25px;
+    right: 80px;
+    display: flex;
+    gap: 10px;
+    transition: transform 0.5s ease, opacity 0.5s ease;
+    z-index: 15;
+  }
+
+  .btn-group.hidden {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .btn-group a {
+    text-decoration: none;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    transition: background 0.3s;
+    white-space: nowrap;
+  }
+
+  .btn-group a:hover {
+    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+  }
+
+  #toggleBtn {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 40px;
+    height: 40px;
+    background-color: #ff4d4d;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 10px #ff4d4d88;
+    z-index: 20;
+    transition: background-color 0.3s ease;
+  }
+
+  #toggleBtn:hover {
+    background-color: #e04343;
+  }
+
+  #toggleBtn:focus {
+    outline: none;
+  }
+</style>
+
+<video class="video-bg" autoplay muted loop playsinline>
+  <source src="{% static 'videos/background.mp4' %}" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
+<div class="home-container">
+  <h1></h1>
+</div>
+
+<!-- ✅ Hidden by default -->
+<div class="btn-group hidden" id="btnGroup">
+  <a href="{% url 'login' %}">Login</a>
+  <a href="{% url 'register' %}">Register</a>
+</div>
+
+<button id="toggleBtn" aria-label="Toggle Home Container"></button>
+
+<script>
+  const toggleBtn = document.getElementById("toggleBtn");
+  const btnGroup = document.getElementById("btnGroup");
+
+  toggleBtn.addEventListener("click", () => {
+    btnGroup.classList.toggle("hidden");
+  });
+</script>
+
+{% endblock %}

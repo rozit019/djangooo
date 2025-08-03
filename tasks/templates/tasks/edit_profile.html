@@ -1,0 +1,188 @@
+{% extends "base.html" %} {% load crispy_forms_tags %} {% block content %}
+<!-- dxfhdfh -->
+{% load static %}
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+  }
+
+  @keyframes gradientBG {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .center-wrapper {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .edit-profile-container {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 900px;
+    width: 100%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    animation: float 4s ease-in-out infinite, fadeIn 0.8s ease;
+    color: #fff;
+  }
+
+  .edit-profile-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: bold;
+  }
+
+  .edit-profile-img {
+    max-width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.5);
+    margin-bottom: 20px;
+  }
+
+  .btn-success {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 10px 20px;
+    transition: 0.3s;
+  }
+
+  .btn-success:hover {
+    background-color: #218838;
+  }
+
+  .btn-theme-pink {
+    background-color: #e73c7e;
+    color: white;
+    border: none;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 10px 20px;
+    transition: 0.3s;
+  }
+
+  .btn-theme-pink:hover {
+    background-color: #d12a6a;
+  }
+
+  .btn-theme-teal {
+    background-color: #23d5ab;
+    color: white;
+    border: none;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 10px 20px;
+    transition: 0.3s;
+  }
+
+  .btn-theme-teal:hover {
+    background-color: #1ebd97;
+  }
+
+  .bg-form {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 20px;
+    border-radius: 15px;
+    color: #000;
+  }
+</style>
+
+{% if messages %}
+<div class="container mt-3">
+  {% for message in messages %}
+  <div
+    class="alert alert-{{ message.tags }} alert-dismissible fade show"
+    role="alert"
+  >
+    {{ message }}
+    <button
+      type="button"
+      class="btn-close"
+      data-bs-dismiss="alert"
+      aria-label="Close"
+    ></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="center-wrapper">
+  <div class="edit-profile-container">
+    <h2>Edit Profile</h2>
+
+    <div class="row">
+      <div class="col-md-4 text-center">
+        <img
+          src="{{ user.profile.image.url|default:'/media/profile_pics/default.jpg' }}"
+          alt="Profile Picture"
+          class="edit-profile-img"
+        />
+      </div>
+
+      <div class="col-md-8">
+        <form method="POST" enctype="multipart/form-data" class="bg-form">
+          {% csrf_token %} {{ user_form|crispy }} {{ profile_form|crispy }}
+
+          <button type="submit" class="btn btn-success mt-3 w-100">
+            Save Changes
+          </button>
+        </form>
+
+        <div class="mt-3 d-flex justify-content-between">
+          <a href="{% url 'password_change' %}" class="btn btn-theme-pink">
+            Change Password
+          </a>
+          <button onclick="window.history.back()" class="btn btn-theme-teal">
+            ← Go Back
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

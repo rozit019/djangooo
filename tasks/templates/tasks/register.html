@@ -1,73 +1,170 @@
-{% extends 'base.html' %} {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Register</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #f2f2f2;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-      }
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    font-family: "Segoe UI", sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    overflow: hidden;
+  }
 
-      .register-container {
-        background-color: #fff;
-        padding: 40px 30px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 400px;
-      }
+  @keyframes gradientBG {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
 
-      h2 {
-        text-align: center;
-        margin-bottom: 24px;
-      }
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
 
-      input {
-        width: 100%;
-        padding: 12px;
-        margin-bottom: 16px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-      }
+  .register-container {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 40px 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    animation: float 4s ease-in-out infinite, fadeIn 0.8s ease;
+    color: #fff;
+  }
 
-      button {
-        width: 100%;
-        padding: 12px;
-        background-color: #28a745;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 16px;
-      }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 
-      .error {
-        color: red;
-        text-align: center;
-        margin-bottom: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="register-container">
-      <h2>Register</h2>
+  .register-container h2 {
+    margin-bottom: 24px;
+    font-weight: bold;
+    color: #fff;
+  }
 
-      <form method="POST">
-        {% csrf_token %} {{ form.as_p }}
-        <button type="submit">Register</button>
-      </form>
-      <div class="login-link">
-        already have an account?<a href="/login">login here</a>
-      </div>
-    </div>
-  </body>
-</html>
+  .register-container input[type="text"],
+  .register-container input[type="email"],
+  .register-container input[type="password"] {
+    width: 100%;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: 0.3s;
+    outline: none;
+    color: #333;
+  }
 
+  .register-container input::placeholder {
+    color: #999;
+  }
+
+  .register-container input:focus {
+    border-color: #23a6d5;
+    box-shadow: 0 0 5px rgba(35, 166, 213, 0.3);
+  }
+
+  .register-container button {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .register-container button:hover {
+    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+  }
+
+  .error {
+    color: #ff6b6b;
+    margin-bottom: 10px;
+    font-size: 14px;
+    text-align: left;
+  }
+
+  .login-link {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #fff;
+  }
+
+  .login-link a {
+    color: #fff;
+    text-decoration: underline;
+  }
+
+  .login-link a:hover {
+    opacity: 0.8;
+  }
+</style>
+
+<div class="register-container">
+  <h2>Register</h2>
+
+  <form method="POST">
+    {% csrf_token %}
+    <p>
+      <input type="text" name="username" placeholder="👤 Username" required />
+      {% if form.username.errors %}
+      <div class="error">{{ form.username.errors }}</div>
+      {% endif %}
+    </p>
+    <p>
+      <input type="password" name="password1" placeholder="🔒 Password" required />
+      {% if form.password1.errors %}
+      <div class="error">{{ form.password1.errors }}</div>
+      {% endif %}
+    </p>
+    <p>
+      <input
+        type="password"
+        name="password2"
+        placeholder="🔒 Confirm Password"
+        required
+      />
+      {% if form.password2.errors %}
+      <div class="error">{{ form.password2.errors }}</div>
+      {% endif %}
+    </p>
+
+    <button type="submit">Register</button>
+  </form>
+
+  <div class="login-link">
+    Already have an account? <a href="{% url 'login' %}">Login here</a>
+  </div>
+</div>
 {% endblock %}

@@ -29,6 +29,10 @@ urlpatterns = [
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='registration/password_change_done.html'), name='password_change_done'),
     path('tasks/complete/<int:task_id>/', views.mark_task_completed, name='mark_task_completed'),
     path('tasks/toggle/', views.toggle_task_completion, name='toggle_task'),
+    path('task/<int:task_id>/', views.task_detail, name='task_detail'),
+    path('tasks/<int:pk>/edit/', views.edit_task, name='edit_task'),
+    path('ajax/due-soon-count/', views.get_due_soon_count, name='get_due_soon_count'),
+    path('edit_profile', views.edit_profile_view, name='edit_profile'),
     
 
 ]

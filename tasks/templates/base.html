@@ -1,4 +1,7 @@
+{% load static %}
+
 <!DOCTYPE html>
+
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,22 +10,95 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <style>
+      .dropdown-menu {
+        z-index: 1050; /* Bootstrap default, but you can increase if needed */
+      }
+    </style>
+
+    <!-- <div class="dropdown">
+      <button
+        class="btn btn-primary dropdown-toggle"
+        type="button"
+        data-bs-toggle="dropdown"
+      >
+        Test Dropdown
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="#">Item 1</a></li>
+      </ul>
+    </div> -->
+
+    <style>
+      /* Light Mode (default) */
+      body {
+        background-color: #fff;
+        color: #212529;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      /* Dark Mode */
+      body.dark-mode {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+
+      /* Card background adjustments */
+      .card {
+        background-color: #fff;
+        color: #212529;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      body.dark-mode .card {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+      }
+
+      /* Button adjustments */
+      .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      body.dark-mode .btn-primary {
+        background-color: #2563eb;
+        border-color: #2563eb;
+      }
+
+      /* Link colors */
+      a {
+        color: #0d6efd;
+        text-decoration: none;
+      }
+      body.dark-mode a {
+        color: #90cdf4;
+      }
+    </style>
   </head>
-  <body class="bg-light">
+  <body>
     {% if request.resolver_match.url_name == 'task_list' %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-      <!--tail wind htmll-->
       {% endif %}
+
       <div class="container">
         {% if request.resolver_match.url_name == 'task_list' %}
         <a class="navbar-brand" href="#">Task Manager</a>
         {% endif %}
-
         <div>
           {% if request.resolver_match.url_name == 'task_list' %}
           <span class="navbar-text me-3 text-white"
             >Konichiwa !, {{ user.username }}</span
           >
+
+          <!-- Dark Mode Toggle Button -->
+          <button
+            id="darkModeToggle"
+            class="btn btn-outline-light btn-sm mx-2"
+            type="button"
+          >
+            🌙 Dark Mode
+          </button>
+
           <!-- Logout Button triggers modal -->
           <button
             type="button"
@@ -34,17 +110,71 @@
           </button>
 
           <a href="/profile" class="btn btn-outline-light btn-sm">Profile</a>
+          <!-- this is for notification -->
+          <div class="dropdown d-inline-block me-3">
+            <button
+              class="btn btn-outline-light btn-sm position-relative dropdown-toggle"
+              type="button"
+              id="notificationDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              🔔 {% if due_soon_count > 0 %}
+              <span
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                style="pointer-events: none"
+                >{{ due_soon_count }}</span
+              >
+              {% endif %}
+            </button>
+            <ul
+              class="dropdown-menu dropdown-menu-end"
+              aria-labelledby="notificationDropdown"
+              style="min-width: 300px"
+            >
+              {% if due_soon_count > 0 %}
+              <li class="dropdown-header">Upcoming Tasks</li>
+              {% for task in due_soon_tasks %}
+              <li id="notif-task-{{ task.id }}">
+                <a
+                  class="dropdown-item"
+                  href="{% url 'task_detail' task.id %}"
+                  title="{{ task.description|default:'No description' }}"
+                >
+                  <strong>{{ task.title }}</strong><br />
+                  Due: {{ task.due_date|date:"M d, Y" }}
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              {% endfor %}
+              <!-- <li>
+                <a
+                  class="dropdown-item text-center small"
+                  href="{% url 'task_list' %}"
+                >
+                  View All Tasks
+                </a>
+              </li> -->
+              {% else %}
+              <li class="dropdown-item text-center">No upcoming tasks</li>
+              {% endif %}
+            </ul>
+          </div>
+
           <a href="/chatbot" class="btn btn-outline-light btn-sm">Chatbot🤖</a>
-          {% elif not user.is_authenticated %}
-          <a href="/login" class="btn btn-outline-light btn-sm">Login</a>
-          {% endif %}
+          {% elif not user.is_authenticated %} {% endif %}
         </div>
       </div>
     </nav>
     {% if messages %}
-    <div class="container mt-2">
+
+    <div
+      id="popup-container"
+      style="position: fixed; top: 20px; right: 20px; z-index: 9999"
+    >
       {% for message in messages %}
       <div
+        id="popup-message-{{ forloop.counter }}"
         class="alert alert-{{ message.tags }} alert-dismissible fade show"
         role="alert"
       >
@@ -58,16 +188,27 @@
       </div>
       {% endfor %}
     </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const messages = document.querySelectorAll("#popup-container .alert");
+        messages.forEach(function (msg) {
+          setTimeout(function () {
+            // Fade out
+            msg.classList.remove("show");
+            msg.classList.add("fade");
+            // Remove after animation
+            setTimeout(function () {
+              msg.remove();
+            }, 500);
+          }, 3000); // 3 seconds
+        });
+      });
+    </script>
     {% endif %}
 
-    <div class="container">{% block content %} {% endblock %}</div>
+    <div class="container">{% block content %}{% endblock %}</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- At the bottom of base.html before </body> -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script></script>
-    <!-- Logout Confirmation Modal -->
+    <!-- Logout Modal -->
     <div
       class="modal fade"
       id="logoutModal"
@@ -103,5 +244,55 @@
         </div>
       </div>
     </div>
+
+    <script>
+      const toggleBtn = document.getElementById("darkModeToggle");
+      if (toggleBtn) {
+        // Initialize button label and body class based on localStorage
+        if (localStorage.getItem("darkMode") === "enabled") {
+          document.body.classList.add("dark-mode");
+          toggleBtn.textContent = "☀️ Light Mode";
+        } else {
+          toggleBtn.textContent = "🌙 Dark Mode";
+        }
+
+        toggleBtn.addEventListener("click", () => {
+          document.body.classList.toggle("dark-mode");
+
+          if (document.body.classList.contains("dark-mode")) {
+            toggleBtn.textContent = "☀️ Light Mode";
+            localStorage.setItem("darkMode", "enabled");
+          } else {
+            toggleBtn.textContent = "🌙 Dark Mode";
+            localStorage.setItem("darkMode", "disabled");
+          }
+        });
+      }
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YoNnI+2ozbAsEvOIQ1+ixq2kAp+Ia8eG1BP2KzqE9l/XEmAIKz1A8SvTDGfzpRdr"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- <audio
+      id="notifSound"
+      src="{% static 'sounds/notification.mp3' %}"
+      preload="auto"
+    ></audio>
+    <script>
+      window.addEventListener("DOMContentLoaded", function () {
+        const notifCount = {{ due_soon_count|default:"0" }};
+        if (notifCount > 0) {
+          const sound = document.getElementById("notifSound");
+          if (sound) {
+            // Attempt to play only after user interacts (browsers restrict autoplay)
+            document.addEventListener("click", () => {
+              sound.play().catch((e) => console.log("Audio blocked:", e));
+            }, { once: true });
+          }
+        }
+      }); -->
+    </script>
   </body>
 </html>

@@ -1,0 +1,25 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">Edit Task: {{ task.title }}</h4>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %} {{ form.as_p }}
+        <div class="d-flex justify-content-between mt-4">
+          <button type="submit" class="btn btn-success px-4">
+            💾 Save Changes
+          </button>
+          <a
+            href="{% url 'task_detail' task.id %}"
+            class="btn btn-outline-secondary px-4"
+          >
+            ❌ Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

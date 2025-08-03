@@ -1,0 +1,97 @@
+{% extends 'base.html' %} {% block content %}
+
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    font-family: "Segoe UI", sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    overflow: hidden;
+  }
+
+  @keyframes gradientBG {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  .home-container {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 50px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    max-width: 600px;
+    text-align: center;
+    animation: float 4s ease-in-out infinite, fadeIn 0.8s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .home-container h1 {
+    font-size: 2.5rem;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+
+  .home-container p {
+    font-size: 1.2rem;
+    color: #fff;
+    margin-bottom: 30px;
+  }
+
+  .home-container a {
+    text-decoration: none;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: background 0.3s;
+  }
+
+  .home-container a:hover {
+    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+  }
+</style>
+
+<div class="home-container">
+  <h1>Welcome to Task Manager 📝</h1>
+  <p>Plan, organize, and accomplish your goals efficiently.</p>
+  <a href="{% url 'task_list' %}">View Tasks</a>
+</div>
+
+{% endblock %}

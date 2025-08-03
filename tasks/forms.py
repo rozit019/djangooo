@@ -7,7 +7,7 @@ from .models import Profile
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = ['title', 'description', 'due_date', 'priority']
+        fields = ['title', 'description', 'due_date', 'priority','completed']  # Include all fields you want in the form
  # or a specific list like ['title', 'description']
 
 
